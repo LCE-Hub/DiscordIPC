@@ -1,8 +1,8 @@
 # Discord IPC CPP
 
-C++ library for interfacing with Discord IPC socket. This library was initial made for the parent project [apple-music-rpc-cpp](https://github.com/TheMoonThatRises/apple-music-rpc-cpp), and thus may not be contain full compatibility with Discord IPC protocols. Because of the criteria for the parent project, this library is entirely self-contained, and does not include any external libraries. Feel free to create a [new issue](https://github.com/TheMoonThatRises/discord_ipc_cpp/issues/new) or submit [pull requests](https://github.com/TheMoonThatRises/discord_ipc_cpp/pulls) if you encounter any issues.
+C++ library for interfacing with Discord IPC socket. This is a fork of [TheMoonThatRises/discord_ipc_cpp](https://github.com/TheMoonThatRises/discord_ipc_cpp) made for the Project Radium ([Emerald Launcher v2](https://github.com/LCE-Hub/LCE-Emerald-Launcher)). This fork adds Windows support on top of the original Unix implementation. Because of the criteria for the parent project, this library is entirely self-contained, and does not include any external libraries.
 
-## Documentation
+## Documentation (for the original project)
 
 Read the full documentation here: [https://plduanm.com/projects/documentation/discord_ipc_cpp](https://plduanm.com/projects/documentation/discord_ipc_cpp)
 
@@ -10,14 +10,14 @@ Read the full documentation here: [https://plduanm.com/projects/documentation/di
 
 Requirements:
 
-- A Unix system
-- CMake >= 3.14
+- A Unix system or Windows
+- CMake >= 3.25
 - C++ >= 20
 
 Clone this repository as a submodule under `src/`:
 
 ```bash
-git submodule add https://github.com/TheMoonThatRises/discord_ipc_cpp src/discord_ipc_cpp
+git submodule add https://github.com/LCE-Hub/DiscordIPC src/discord_ipc_cpp
 ```
 
 And add the following into your `CMakeLists.txt`:
@@ -39,9 +39,7 @@ All of the code below will incorporate the following metacode:
 ```c++
 #include <discord_ipc_cpp/discord_ipc_client.hpp>
 #include <discord_ipc_cpp/ipc_types.hpp>
-
 using discord_ipc_cpp::DiscordIPCClient;
-
 using discord_ipc_cpp::ipc_types::RichPresence;
 ```
 
@@ -49,7 +47,6 @@ Create a Discord IPC client and connect to it:
 
 ```c++
 DiscordIPCClient client("<APPLICATION ID>");
-
 // indicates success of connecting to socket
 bool ret = client.connect();
 ```
@@ -70,7 +67,6 @@ RichPresence presence = {
 ```
 
 Set the user's rich presence:
-
 ```c++
 client.set_presence(presence);
 ```

@@ -8,9 +8,13 @@
 #ifndef DISCORD_IPC_CPP_INCLUDE_DISCORD_IPC_CPP_SOCKET_CLIENT_HPP_
 #define DISCORD_IPC_CPP_INCLUDE_DISCORD_IPC_CPP_SOCKET_CLIENT_HPP_
 
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <poll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#endif
 
 #include <string>
 #include <optional>
@@ -39,6 +43,9 @@ class SocketClient {
    */
   std::string _socket_file;
 
+#ifdef _WIN32
+  HANDLE _client_pipe;
+#else
   /**
    * \brief Success of binding to IPC file.
    */
@@ -52,6 +59,7 @@ class SocketClient {
    * \brief Poll events of the socket.
    */
   struct pollfd _fds[1];
+#endif
 
  public:
   /**

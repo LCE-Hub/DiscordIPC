@@ -7,7 +7,11 @@
 
 #include "discord_ipc_cpp/discord_ipc_client.hpp"
 
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <unistd.h>
+#endif
 
 #include <cstring>
 #include <map>
@@ -40,6 +44,16 @@ using discord_ipc_cpp::internal_ipc_types::AuthorizationRequest;
 using discord_ipc_cpp::internal_ipc_types::CommandRequest;
 
 using discord_ipc_cpp::utils::find_discord_ipc_file;
+
+namespace {
+int current_process_id() {
+#ifdef _WIN32
+  return static_cast<int>(::GetCurrentProcessId());
+#else
+  return static_cast<int>(::getpid());
+#endif
+}
+}
 
 std::vector<char> DiscordIPCClient::encode_packet(
   const Payload& payload
@@ -96,7 +110,7 @@ void DiscordIPCClient::recv_thread(std::stop_token stop_token) {
 }
 
 DiscordIPCClient::DiscordIPCClient(const std::string& client_id)
-: _pid(getpid()),
+: _pid(current_process_id()),
 _client_id(client_id),
 _socket(utils::find_discord_ipc_file()),
 _successful_auth(false) {}

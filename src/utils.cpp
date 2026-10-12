@@ -7,7 +7,11 @@
 
 #include "include/utils.hpp"
 
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <unistd.h>
+#endif
 
 #include <cstdio>
 #include <map>
@@ -23,11 +27,34 @@ using CommandType = internal_ipc_types::CommandRequest::CommandType;
 using EventType = internal_ipc_types::CommandRequest::EventType;
 
 std::string find_discord_ipc_file() {
-  std::string user_tmp_dir = std::getenv("TMPDIR");
+#ifdef _WIN32
+  std::string base_ipc_name = "\\\\.\\pipe\\discord-ipc-";
+  for (int i = 0; i < 10; ++i) {
+    std::string test_path = base_ipc_name + std::to_string(i);
+    HANDLE pipe = ::CreateFileA(test_path.c_str(),
+                                GENERIC_READ | GENERIC_WRITE,
+                                0,
+                                nullptr,
+                                OPEN_EXISTING,
+                                0,
+                                nullptr);
+
+    if (pipe != INVALID_HANDLE_VALUE) {
+      ::CloseHandle(pipe);
+      return test_path;
+    }
+  }
+
+  return "";
+#else
+  const char* tmp_dir = std::getenv("TMPDIR");
+  const char* env_dir = tmp_dir != nullptr ? tmp_dir : "/tmp";
+  std::string user_tmp_dir = env_dir;
   std::string base_ipc_name = "discord-ipc-";
 
   for (int i = 0; i < 10; ++i) {
-    std::string test_path = user_tmp_dir + base_ipc_name + std::to_string(i);
+    std::string test_path = user_tmp_dir + "/" + base_ipc_name
+      + std::to_string(i);
 
     if (access(test_path.c_str(), R_OK) >= 0) {
       return test_path;
@@ -35,6 +62,7 @@ std::string find_discord_ipc_file() {
   }
 
   return "";
+#endif
 }
 
 std::string escape_string(const std::string& input) {

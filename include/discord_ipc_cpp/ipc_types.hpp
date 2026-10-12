@@ -11,6 +11,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <cstdint>
 
 #include "discord_ipc_cpp/json.hpp"
 

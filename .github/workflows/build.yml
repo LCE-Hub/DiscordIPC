@@ -6,11 +6,11 @@ on:
       - stable
   push:
     paths-ignore:
-      - '**.md'
-      - 'LICENSE'
-      - '**.txt'
-      - '!CMakeLists.txt'
-      - 'scripts/**'
+      - "**.md"
+      - "LICENSE"
+      - "**.txt"
+      - "!CMakeLists.txt"
+      - "scripts/**"
 
 jobs:
   build:
@@ -33,3 +33,15 @@ jobs:
         uses: threeal/cmake-action@v2.1.0
         with:
           cxx-compiler: ${{ matrix.cxx }}
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Configure project
+        run: cmake -B build
+
+      - name: Build project
+        run: cmake --build build --config Release

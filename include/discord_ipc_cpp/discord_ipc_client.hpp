@@ -43,7 +43,7 @@ class DiscordIPCClient {
    * Each rich presence is required to have an attached process ID to
    * distinguish between different applications.
    */
-  const pid_t _pid;
+  const int _pid;
   /**
    * \brief ID of the application.
    *

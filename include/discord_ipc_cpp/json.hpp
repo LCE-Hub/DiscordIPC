@@ -11,6 +11,7 @@
 #include <map>
 #include <string>
 #include <sstream>
+#include <cstdint>
 #include <optional>
 #include <variant>
 #include <vector>

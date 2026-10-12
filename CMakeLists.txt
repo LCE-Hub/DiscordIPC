@@ -15,7 +15,7 @@ add_library(discord_ipc_cpp STATIC
 )
 
 set_target_properties(discord_ipc_cpp PROPERTIES
-  CXX_STANDARD 26
+  CXX_STANDARD 20
   CXX_STANDARD_REQUIRED ON
 )
 
@@ -29,12 +29,18 @@ target_include_directories(discord_ipc_cpp
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_compile_options(discord_ipc_cpp PRIVATE
-  -Wall
-  -Wextra
-
-  -O3
-  -pthread
-  -flto
-  -fvisibility=hidden
-)
+if(MSVC)
+  target_compile_options(discord_ipc_cpp PRIVATE
+    /W4
+    /O2
+  )
+else()
+  target_compile_options(discord_ipc_cpp PRIVATE
+    -Wall
+    -Wextra
+    -O3
+    -pthread
+    -flto
+    -fvisibility=hidden
+  )
+endif()
