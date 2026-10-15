@@ -13,12 +13,16 @@
 #include <unistd.h>
 #endif
 
+#ifdef __linux__
+#include <sys/stat.h>
+#endif
+
 #include <cstdio>
 #include <map>
-#include <string>
 #include <optional>
-#include <vector>
 #include <random>
+#include <string>
+#include <vector>
 
 #include "include/internal_ipc_types.hpp"
 
@@ -31,13 +35,8 @@ std::string find_discord_ipc_file() {
   std::string base_ipc_name = "\\\\.\\pipe\\discord-ipc-";
   for (int i = 0; i < 10; ++i) {
     std::string test_path = base_ipc_name + std::to_string(i);
-    HANDLE pipe = ::CreateFileA(test_path.c_str(),
-                                GENERIC_READ | GENERIC_WRITE,
-                                0,
-                                nullptr,
-                                OPEN_EXISTING,
-                                0,
-                                nullptr);
+    HANDLE pipe = ::CreateFileA(test_path.c_str(), GENERIC_READ | GENERIC_WRITE,
+                                0, nullptr, OPEN_EXISTING, 0, nullptr);
 
     if (pipe != INVALID_HANDLE_VALUE) {
       ::CloseHandle(pipe);
@@ -46,15 +45,31 @@ std::string find_discord_ipc_file() {
   }
 
   return "";
+#elif defined(__linux__)
+  std::vector<std::string> dirs;
+  if (const char *x = std::getenv("XDG_RUNTIME_DIR")) {
+    dirs = {x, std::string(x) + "/app/com.discordapp.Discord",
+            std::string(x) + "/snap.discord"};
+  } else {
+    dirs = {"/run/user/" + std::to_string(getuid())};
+  }
+  for (const auto &dir : dirs) {
+    for (int i = 0; i < 10; ++i) {
+      std::string p = dir + "/discord-ipc-" + std::to_string(i);
+      struct stat st;
+      if (stat(p.c_str(), &st) == 0 && S_ISSOCK(st.st_mode))
+        return p;
+    }
+  }
+  return "";
 #else
-  const char* tmp_dir = std::getenv("TMPDIR");
-  const char* env_dir = tmp_dir != nullptr ? tmp_dir : "/tmp";
+  const char *tmp_dir = std::getenv("TMPDIR");
+  const char *env_dir = tmp_dir != nullptr ? tmp_dir : "/tmp";
   std::string user_tmp_dir = env_dir;
   std::string base_ipc_name = "discord-ipc-";
-
   for (int i = 0; i < 10; ++i) {
-    std::string test_path = user_tmp_dir + "/" + base_ipc_name
-      + std::to_string(i);
+    std::string test_path =
+        user_tmp_dir + "/" + base_ipc_name + std::to_string(i);
 
     if (access(test_path.c_str(), R_OK) >= 0) {
       return test_path;
@@ -65,48 +80,48 @@ std::string find_discord_ipc_file() {
 #endif
 }
 
-std::string escape_string(const std::string& input) {
+std::string escape_string(const std::string &input) {
   std::string out;
   out.reserve(input.size() + 16);
 
   for (unsigned char c : input) {
     switch (c) {
-      case '"':
-        out += "\\\"";
-        break;
-      case '\\':
-        out += "\\\\";
-        break;
-      case '\b':
-        out += "\\b";
-        break;
-      case '\f':
-        out += "\\f";
-        break;
-      case '\n':
-        out += "\\n";
-        break;
-      case '\r':
-        out += "\\r";
-        break;
-      case '\t':
-        out += "\\t";
-        break;
-      default:
-        if (c < 0x20) {
-          char buf[7];
-          std::snprintf(buf, sizeof(buf), "\\u%04x", c);
-          out += buf;
-        } else {
-          out += static_cast<char>(c);
-        }
+    case '"':
+      out += "\\\"";
+      break;
+    case '\\':
+      out += "\\\\";
+      break;
+    case '\b':
+      out += "\\b";
+      break;
+    case '\f':
+      out += "\\f";
+      break;
+    case '\n':
+      out += "\\n";
+      break;
+    case '\r':
+      out += "\\r";
+      break;
+    case '\t':
+      out += "\\t";
+      break;
+    default:
+      if (c < 0x20) {
+        char buf[7];
+        std::snprintf(buf, sizeof(buf), "\\u%04x", c);
+        out += buf;
+      } else {
+        out += static_cast<char>(c);
+      }
     }
   }
 
   return out;
 }
 
-std::string unescape_string(const std::string& input) {
+std::string unescape_string(const std::string &input) {
   std::string out;
   out.reserve(input.size());
 
@@ -121,65 +136,64 @@ std::string unescape_string(const std::string& input) {
     if (++i >= input.size()) {
       out += '\\';
       break;
-    }  // trailing backslash
+    } // trailing backslash
 
     switch (input[i]) {
-      case '"':
-        out += '"';
-        break;
-      case '\\':
-        out += '\\';
-        break;
-      case '/':
-        out += '/';
-        break;
-      case 'b':
-        out += '\b';
-        break;
-      case 'f':
-        out += '\f';
-        break;
-      case 'n':
-        out += '\n';
-        break;
-      case 'r':
-        out += '\r';
-        break;
-      case 't':
-        out += '\t';
-        break;
-      case 'u': {
-        // \uXXXX — 4 hex digits follow
-        if (i + 4 < input.size()) {
-          int cp = std::stoi(input.substr(i + 1, 4), nullptr, 16);
+    case '"':
+      out += '"';
+      break;
+    case '\\':
+      out += '\\';
+      break;
+    case '/':
+      out += '/';
+      break;
+    case 'b':
+      out += '\b';
+      break;
+    case 'f':
+      out += '\f';
+      break;
+    case 'n':
+      out += '\n';
+      break;
+    case 'r':
+      out += '\r';
+      break;
+    case 't':
+      out += '\t';
+      break;
+    case 'u': {
+      // \uXXXX — 4 hex digits follow
+      if (i + 4 < input.size()) {
+        int cp = std::stoi(input.substr(i + 1, 4), nullptr, 16);
 
-          i += 4;
-          // NOTE: this only handles the basic case; see caveat below
-          if (cp < 0x80) {
-            out += static_cast<char>(cp);
-          } else if (cp < 0x800) {
-            out += static_cast<char>(0xC0 | (cp >> 6));
-            out += static_cast<char>(0x80 | (cp & 0x3F));
-          } else {
-            out += static_cast<char>(0xE0 | (cp >> 12));
-            out += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
-            out += static_cast<char>(0x80 | (cp & 0x3F));
-          }
+        i += 4;
+        // NOTE: this only handles the basic case; see caveat below
+        if (cp < 0x80) {
+          out += static_cast<char>(cp);
+        } else if (cp < 0x800) {
+          out += static_cast<char>(0xC0 | (cp >> 6));
+          out += static_cast<char>(0x80 | (cp & 0x3F));
+        } else {
+          out += static_cast<char>(0xE0 | (cp >> 12));
+          out += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
+          out += static_cast<char>(0x80 | (cp & 0x3F));
         }
-
-        break;
       }
-      default:
-        out += input[i];
-        break;  // unknown escape, pass through
+
+      break;
+    }
+    default:
+      out += input[i];
+      break; // unknown escape, pass through
     }
   }
 
   return out;
 }
 
-template<typename T>
-T generate_random_num(T min, T max) {
+template <typename T> T generate_random_num(T min, T max) {
   static std::random_device _rdev;
   static std::mt19937 _rng(_rdev());
   static std::uniform_real_distribution<> _rdist(min, max);
@@ -189,9 +203,8 @@ T generate_random_num(T min, T max) {
 
 std::string generate_uuid() {
   static const std::string _valid_chars = "0123456789abcdef";
-  static const std::vector<int> _dashes = {
-    0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0
-  };
+  static const std::vector<int> _dashes = {0, 0, 0, 0, 1, 0, 1, 0,
+                                           1, 0, 1, 0, 0, 0, 0, 0};
 
   std::string uuid = "";
 
@@ -207,9 +220,9 @@ std::string generate_uuid() {
   return uuid;
 }
 
-template<typename K, typename V>
-std::optional<K> reverse_map_search(const std::map<K, V>& map, const V& item) {
-  for (const auto& [key, value] : map) {
+template <typename K, typename V>
+std::optional<K> reverse_map_search(const std::map<K, V> &map, const V &item) {
+  for (const auto &[key, value] : map) {
     if (value == item) {
       return key;
     }
@@ -221,8 +234,10 @@ std::optional<K> reverse_map_search(const std::map<K, V>& map, const V& item) {
 template double generate_random_num(double, double);
 template int generate_random_num(int, int);
 
-template std::optional<CommandType> reverse_map_search(
-  const std::map<CommandType, std::string>&, const std::string& item);
-template std::optional<EventType> reverse_map_search(
-  const std::map<EventType, std::string>&, const std::string& item);
-}  // namespace discord_ipc_cpp::utils
+template std::optional<CommandType>
+reverse_map_search(const std::map<CommandType, std::string> &,
+                   const std::string &item);
+template std::optional<EventType>
+reverse_map_search(const std::map<EventType, std::string> &,
+                   const std::string &item);
+} // namespace discord_ipc_cpp::utils

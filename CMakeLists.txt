@@ -39,8 +39,8 @@ else()
     -Wall
     -Wextra
     -O3
-    -pthread
     -flto
     -fvisibility=hidden
   )
 endif()
+target_include_directories(discord_ipc_cpp INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
